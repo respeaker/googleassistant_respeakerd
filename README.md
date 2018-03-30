@@ -5,7 +5,7 @@ Google Assistant to work with respeakerd
 [![Pypi](https://img.shields.io/pypi/v/googleassistant_respeakerd.svg)](https://pypi.python.org/pypi/googleassistant_respeakerd)
 
 
-Adapt google assistant's [gRPC sample app](https://github.com/googlesamples/assistant-sdk-python/tree/master/google-assistant-sdk/googlesamples/assistant/grpc) for working with [respeakerd](https://github.com/respeaker/respeakerd)
+Adapt google assistant's [gRPC sample app](https://github.com/googlesamples/assistant-sdk-python/tree/master/google-assistant-sdk/googlesamples/assistant/grpc) for working with [respeakerd](https://github.com/respeaker/respeakerd).
 
 ## About Google Assisant Service
 
@@ -19,7 +19,7 @@ Please refer to [here](https://developers.google.com/assistant/sdk/guides/servic
 
 ### Register the Device Model
 
-Please refer to [here](https://developers.google.com/assistant/sdk/guides/service/python/embed/register-device)
+Please refer to [here](https://developers.google.com/assistant/sdk/guides/service/python/embed/register-device).
 
 ### Install the SDK and Sample Code
 
@@ -27,8 +27,7 @@ In this step, it's a little bit different from the Google's guide. Since we will
 
 ```shell
 sudo apt-get install portaudio19-dev libffi-dev libssl-dev
-cd ~ && git clone https://github.com/respeaker/googleassistant_respeakerd.git && cd googleassistant_respeakerd
-sudo pip install -r requirements.txt
+sudo pip install -U googleassistant_respeakerd
 google-oauthlib-tool --scope https://www.googleapis.com/auth/assistant-sdk-prototype --save --headless --client-secrets /path/to/credentials.json
 ```
 
@@ -62,6 +61,6 @@ Please refer to [here](https://developers.google.com/assistant/sdk/guides/servic
 googlesamples-assistant-respeakerd --project-id my-dev-project --device-model-id my-model
 ```
 
-### Known Limits
+## Known Limits
 
 - Can not be interrupted (waked) when the assistant's speaking something

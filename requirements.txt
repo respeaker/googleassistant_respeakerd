@@ -1,0 +1,3 @@
+google-assistant-sdk[samples]
+google-auth-oauthlib[tool]
+pydbus>=0.6.0,<1
