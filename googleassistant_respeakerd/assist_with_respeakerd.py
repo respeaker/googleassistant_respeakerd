@@ -36,7 +36,7 @@ import signal as sys_signal
 from pydbus import SystemBus
 from pydbus.generic import signal
 from gi.repository import GLib
-from threading import Thread, Condition
+from threading import Thread, Condition, Lock
 try:
     from queue import Queue
 except:
@@ -135,7 +135,10 @@ class SampleAssistant(object):
         continue_conversation = False
         device_actions_futures = []
 
+        # drain audio
+        self.conversation_stream.stop_recording()
         self.conversation_stream.start_recording()
+
         logging.info('Recording audio request.')
 
         self.event_queue.put('on_listen')
@@ -144,7 +147,7 @@ class SampleAssistant(object):
             for c in self.gen_assist_requests():
                 assistant_helpers.log_assist_request_without_audio(c)
                 yield c
-            self.conversation_stream.start_playback()
+            logging.info('Reached end of AssistRequest iteration.')
 
         # This generator yields AssistResponse proto messages
         # received from the gRPC Google Assistant API.
@@ -153,20 +156,26 @@ class SampleAssistant(object):
             assistant_helpers.log_assist_response_without_audio(resp)
             if resp.event_type == END_OF_UTTERANCE:
                 logging.info('End of audio request detected')
-                self.conversation_stream.stop_recording()
+                # if self.conversation_stream.recording:
+                    # self.conversation_stream.stop_recording()
                 self.event_queue.put('on_think')
             if resp.speech_results:
                 logging.info('Transcript of user request: "%s".',
                              ' '.join(r.transcript for r in resp.speech_results))
-                logging.info('Playing assistant response.')
             if len(resp.audio_out.audio_data) > 0:
+                if not self.conversation_stream.playing:
+                    # turn off capture device to playback
+                    self.conversation_stream.stop_recording()
+                    self.conversation_stream.start_playback()
+                    self.event_queue.put('on_speak')
+                    logging.info('Playing assistant response.')
                 self.conversation_stream.write(resp.audio_out.audio_data)
             if resp.dialog_state_out.conversation_state:
                 conversation_state = resp.dialog_state_out.conversation_state
                 logging.debug('Updating conversation state.')
                 self.conversation_state = conversation_state
                 if not resp.dialog_state_out.volume_percentage:
-                    self.event_queue.put('on_speak')
+                    self.event_queue.put('on_speak') 
             if resp.dialog_state_out.volume_percentage != 0:
                 volume_percentage = resp.dialog_state_out.volume_percentage
                 logging.info('Setting volume to %s%%', volume_percentage)
@@ -190,9 +199,16 @@ class SampleAssistant(object):
             concurrent.futures.wait(device_actions_futures)
 
         logging.info('Finished playing assistant response.')
-        self.conversation_stream.stop_playback()
+        if self.conversation_stream.playing:
+            self.conversation_stream.stop_playback()
+
+        # capture device should always be opened when not playing 
+        self.conversation_stream.start_recording()
         if not continue_conversation:
+            logging.info('Complete conversation.')
             self.event_queue.put('on_idle')
+        else:
+            logging.info('Continue conversation.')
         return continue_conversation
 
     def gen_assist_requests(self):
@@ -380,7 +396,7 @@ def main(api_endpoint, credentials, project_id,
         sys.exit(-1)
 
    # D-Bus preparation
-    cv_trigger = Condition()
+    cv_trigger = Condition(Lock())
     eventq = Queue()
     dbus_obj = DBusSignals()
     loop = GLib.MainLoop()
@@ -533,11 +549,16 @@ def main(api_endpoint, credentials, project_id,
             # and playing back assistant response using the speaker.
             # When the once flag is set, don't wait for a trigger. Otherwise, wait.
             wait_for_user_trigger = not once
+            # capture device should always be opened when not playing 
+            conversation_stream_.start_recording()
+
             while True:
                 if wait_for_user_trigger:
+                    logging.info("speak hotword to wake up")
                     cv_trigger.acquire()
                     cv_trigger.wait()
                     cv_trigger.release()
+                    logging.info("wake up!")
 
                 continue_conversation = False
                 try:
