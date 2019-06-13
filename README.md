@@ -27,7 +27,16 @@ In this step, it's a little bit different from the Google's guide. Since we will
 
 ```shell
 sudo apt-get install portaudio19-dev libffi-dev libssl-dev
-sudo pip install -U googleassistant_respeakerd
+git clone https://github.com/respeaker/googleassistant_respeakerd
+cd googleassistant_respeakerd
+sudo python setup.py install
+sudo cp script/io.respeaker.respeakerd.conf /etc/dbus-1/system.d/
+# set respeakerd to pulse mode
+sudo vim /etc/respeaker/respeakerd.conf 
+# reboot to make it work
+sudo reboot
+
+# oauth
 google-oauthlib-tool --scope https://www.googleapis.com/auth/assistant-sdk-prototype --save --headless --client-secrets /path/to/credentials.json
 ```
 
